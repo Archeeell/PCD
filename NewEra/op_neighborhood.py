@@ -87,12 +87,16 @@ EMBOSS = {
     "Dari arah kiri": np.array([[-1,0,1],[-1,1,1],[-1,0,1]], float),
     "Dari arah kanan atas": np.array([[0,-1,-1],[1,1,-1],[1,1,0]], float),
 }
-def emboss(img_array, beta=2, direction="Dari arah kiri"):
-    """Mask emboss parametrik; mengikuti sum pada contoh materi, tanpa offset tambahan."""
+def emboss_response(img_array, beta=2, direction="Dari arah kiri"):
+    """Respons SUM OF PRODUCTS mentah sesuai contoh perhitungan materi."""
     kernel = EMBOSS[direction].copy()
     kernel[kernel != 0] *= beta
     kernel[1,1] = 1
     return apply_kernel(img_array, kernel)
+
+def emboss(img_array, beta=2, direction="Dari arah kiri"):
+    """Efek emboss ditampilkan dengan level dasar 128 agar terang/gelap tampak timbul."""
+    return 128 + emboss_response(img_array, beta, direction)
 
 def run(original_img):
     print("\n--- OPERASI BERTETANGGA / PERSEKITARAN ---")
