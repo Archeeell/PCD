@@ -1,6 +1,6 @@
 # Branch `NoMain`
 
-Branch ini mempertahankan menu pada `src_code/main.py` dan menambahkan cara menjalankan setiap modul kategori secara langsung. Setiap modul tetap menyediakan fungsi `run(image)` sehingga alur operasi dan rumusnya mudah dibaca untuk laporan.
+Branch ini tidak menyertakan `src_code/main.py`. Jalankan modul operasi yang dibutuhkan secara langsung; tiap modul menyediakan fungsi `run(image)` sehingga alur operasi dan rumusnya mudah dibaca untuk laporan.
 
 ## Menjalankan modul secara langsung
 
@@ -12,8 +12,4 @@ python src_code/op_global.py
 python src_code/op_neighborhood.py
 ```
 
-Setiap perintah meminta pengguna memilih citra dari folder `img/`, lalu menampilkan submenu modul tersebut. Skrip reduksi noise yang sudah mandiri tetap tersedia: `noise_mean.py`, `noise_gaussian.py`, `noise_median.py`, dan `noise_midpoint.py`.
-
-## Menjalankan menu gabungan
-
-Untuk tetap memakai pemilih kategori yang sudah ada, jalankan `python src_code/main.py`.
+Setiap perintah meminta pengguna memilih citra dari folder `img/`, lalu menampilkan submenu modul kategori. Skrip reduksi noise yang sudah mandiri tetap tersedia: `src_code/noise_mean.py`, `src_code/noise_gaussian.py`, `src_code/noise_median.py`, dan `src_code/noise_midpoint.py`.
