@@ -17,7 +17,7 @@ MENU_LABELS = {
     1: "Operasi Titik (Brightness / Contrast / Negasi / Grayscale / Thresholding)",
     2: "Operasi Geometri (Flip / Rotasi / Crop / Scaling)",
     3: "Operasi Berbasis Bingkai (Blending / Gerakan / Logika)",
-    4: "Operasi Global (Ekualisasi Histogram)",
+    4: "Operasi Global (Histogram / Ekualisasi Histogram)",
     5: "Operasi Bertetangga (Edge / Smoothing / Sharpening / Noise / Emboss)",
 }
 
