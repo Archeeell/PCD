@@ -1,6 +1,6 @@
 """Operasi Global: histogram citra dan ekualisasi histogram."""
 import numpy as np
-from NewEra.utils import display_comparison, compute_histogram
+from NewEra.utils import display_comparison, prompt_int
 
 def _equalize_channel(channel, max_level=255):
     """Ko = floor(Ci * (2^k - 1) / (w*h)); Ci adalah histogram kumulatif."""
@@ -22,10 +22,10 @@ def show_histogram(img_array):
     display_comparison(img_array, img_array, "Histogram Citra Asli")
 
 def run(original_img):
-    print("\\n--- OPERASI GLOBAL ---")
+    print("\n--- OPERASI GLOBAL ---")
     print("[1] Tampilkan Histogram Citra")
     print("[2] Ekualisasi Histogram (Histogram Equalization)")
-    choice = int(input("Pilih sub-operasi global (1-2): "))
+    choice = prompt_int("Pilih sub-operasi global: ", 1, 2)
     if choice == 1:
         show_histogram(original_img)
     elif choice == 2:
