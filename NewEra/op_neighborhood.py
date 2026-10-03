@@ -21,8 +21,10 @@ LAPLACIANS = {
 def _convolve_2d(channel, kernel):
     """Korelasi mask (SUM OF PRODUCTS) dengan padding tepi terpantul."""
     kh, kw = kernel.shape
-    py, px = kh // 2, kw // 2
-    padded = np.pad(channel.astype(np.float64), ((py, py), (px, px)), mode="reflect")
+    py_before, px_before = (kh - 1) // 2, (kw - 1) // 2
+    py_after, px_after = kh - 1 - py_before, kw - 1 - px_before
+    padded = np.pad(channel.astype(np.float64),
+                    ((py_before, py_after), (px_before, px_after)), mode="reflect")
     out = np.zeros(channel.shape, dtype=np.float64)
     for y in range(channel.shape[0]):
         for x in range(channel.shape[1]):
