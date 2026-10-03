@@ -9,12 +9,19 @@ Pengolahan Citra (Idhawati Hestiningsih).
 """
 
 import numpy as np
-from .utils import (
-    display_dual_input_result,
-    select_second_image,
-    prompt_int,
-    prompt_float,
-)
+if __package__ in (None, ""):
+    import sys
+    from pathlib import Path
+    sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+    from src_code.utils import (
+        display_dual_input_result, select_second_image, prompt_int,
+        prompt_float, run_standalone,
+    )
+else:
+    from .utils import (
+        display_dual_input_result, select_second_image, prompt_int, prompt_float,
+        run_standalone,
+    )
 
 
 # --- 1. Penggabungan Citra (Image Blending) ---
@@ -124,3 +131,7 @@ def run(original_img):
         _submenu_motion(original_img, img_b)
     elif choice == 3:
         _submenu_logic(original_img, img_b)
+
+
+if __name__ == "__main__":
+    run_standalone(run)

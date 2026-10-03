@@ -15,7 +15,13 @@ Rumus mengikuti materi kuliah Pengolahan Citra (Idhawati Hestiningsih):
 """
 
 import numpy as np
-from .utils import display_comparison, prompt_int, prompt_float
+if __package__ in (None, ""):
+    import sys
+    from pathlib import Path
+    sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+    from src_code.utils import display_comparison, prompt_int, prompt_float, run_standalone
+else:
+    from .utils import display_comparison, prompt_int, prompt_float, run_standalone
 
 
 # --- 1. Pencerminan (Flipping) ---
@@ -179,3 +185,7 @@ def run(original_img):
         _submenu_crop(original_img)
     elif choice == 4:
         _submenu_scale(original_img)
+
+
+if __name__ == "__main__":
+    run_standalone(run)

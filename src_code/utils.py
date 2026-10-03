@@ -33,6 +33,26 @@ def load_image(filepath):
     return np.array(img, dtype=np.uint8)
 
 
+def run_standalone(operation):
+    """Pilih citra, lalu jalankan satu modul operasi tanpa src_code/main.py."""
+    images = get_available_images()
+    if not images:
+        print(f"Folder '{IMG_DIR}' kosong atau tidak berisi citra yang didukung.")
+        return
+    print("=== DAFTAR GAMBAR TERSEDIA ===")
+    for index, name in enumerate(images, 1):
+        print(f"[{index}] {name}")
+    choice = prompt_int("Pilih nomor gambar (0 untuk batal): ", 0, len(images))
+    if choice == 0:
+        print("Operasi dibatalkan.")
+        return
+    path = os.path.join(IMG_DIR, images[choice - 1])
+    image = load_image(path)
+    channels = "Grayscale" if image.ndim == 2 else "RGB"
+    print(f"\nMemuat: {path} | Resolusi: {image.shape[1]}x{image.shape[0]} | Saluran: {channels}")
+    operation(image)
+
+
 def compute_histogram(img_array):
     """Menghitung histogram citra. Grayscale -> {'gray': ...}, RGB -> {'r','g','b': ...}."""
     if img_array.ndim == 2:

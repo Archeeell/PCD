@@ -1,6 +1,12 @@
 """Operasi Bertetangga / Persekitaran sesuai materi kuliah (mask SUM OF PRODUCTS)."""
 import numpy as np
-from .utils import display_comparison, prompt_int, prompt_float
+if __package__ in (None, ""):
+    import sys
+    from pathlib import Path
+    sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+    from src_code.utils import display_comparison, prompt_int, prompt_float, run_standalone
+else:
+    from .utils import display_comparison, prompt_int, prompt_float, run_standalone
 
 SQRT2 = np.sqrt(2.0)
 GRADIENTS = {
@@ -135,3 +141,7 @@ def run(original_img):
         beta = prompt_float("Masukkan derajat emboss beta: ")
         result, label = _uint8(emboss(original_img, beta, direction)), f"Emboss {direction} (beta={beta})"
     display_comparison(original_img, result, label)
+
+
+if __name__ == "__main__":
+    run_standalone(run)

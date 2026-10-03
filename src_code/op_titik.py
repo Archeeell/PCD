@@ -1,6 +1,12 @@
 """Operasi Titik (GST): brightness, contrast, negation, grayscale, dan thresholding."""
 import numpy as np
-from .utils import display_comparison, prompt_int, prompt_float
+if __package__ in (None, ""):
+    import sys
+    from pathlib import Path
+    sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+    from src_code.utils import display_comparison, prompt_int, prompt_float, run_standalone
+else:
+    from .utils import display_comparison, prompt_int, prompt_float, run_standalone
 
 def adjust_brightness(img_array, value):
     """Modifikasi kecemerlangan: Ko = Ki + c, dibatasi pada rentang 0-255."""
@@ -52,3 +58,7 @@ def run(original_img):
     print("[4] Konversi Grayscale / RGB")
     print("[5] Pengambangan (Thresholding)")
     _choose_and_show(original_img, prompt_int("Pilih sub-operasi titik: ", 1, 5))
+
+
+if __name__ == "__main__":
+    run_standalone(run)

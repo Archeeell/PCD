@@ -1,6 +1,12 @@
 """Operasi Global: histogram citra dan ekualisasi histogram."""
 import numpy as np
-from .utils import display_comparison, prompt_int
+if __package__ in (None, ""):
+    import sys
+    from pathlib import Path
+    sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+    from src_code.utils import display_comparison, prompt_int, run_standalone
+else:
+    from .utils import display_comparison, prompt_int, run_standalone
 
 def _equalize_channel(channel, max_level=255):
     """Ko = floor(Ci * (2^k - 1) / (w*h)); Ci adalah histogram kumulatif."""
@@ -33,3 +39,7 @@ def run(original_img):
         display_comparison(original_img, result, "Ekualisasi Histogram")
     else:
         print("Pilihan tidak valid.")
+
+
+if __name__ == "__main__":
+    run_standalone(run)
