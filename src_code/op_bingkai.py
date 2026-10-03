@@ -9,7 +9,7 @@ Pengolahan Citra (Idhawati Hestiningsih).
 """
 
 import numpy as np
-from NewEra.utils import (
+from .utils import (
     display_dual_input_result,
     select_second_image,
     prompt_int,

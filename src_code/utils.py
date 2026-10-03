@@ -12,7 +12,8 @@ import numpy as np
 from PIL import Image
 import matplotlib.pyplot as plt
 
-IMG_DIR = "img"
+PROJECT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+IMG_DIR = os.path.join(PROJECT_DIR, "img")
 
 
 def get_available_images():

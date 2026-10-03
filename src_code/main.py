@@ -3,8 +3,17 @@ Entry point: pemilihan gambar dan menu operasi pengolahan citra.
 Setiap kategori materi dikelola oleh satu modul operasi.
 """
 import os
-from NewEra.utils import get_available_images, load_image, IMG_DIR, prompt_int
-from NewEra import op_titik, op_geometri, op_bingkai, op_global, op_neighborhood
+
+if __package__ in (None, ""):
+    import sys
+    from pathlib import Path
+
+    sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+    from src_code.utils import get_available_images, load_image, IMG_DIR, prompt_int
+    from src_code import op_titik, op_geometri, op_bingkai, op_global, op_neighborhood
+else:
+    from .utils import get_available_images, load_image, IMG_DIR, prompt_int
+    from . import op_titik, op_geometri, op_bingkai, op_global, op_neighborhood
 
 MENU_HANDLERS = {
     1: op_titik.run,

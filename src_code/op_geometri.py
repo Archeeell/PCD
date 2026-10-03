@@ -15,7 +15,7 @@ Rumus mengikuti materi kuliah Pengolahan Citra (Idhawati Hestiningsih):
 """
 
 import numpy as np
-from NewEra.utils import display_comparison, prompt_int, prompt_float
+from .utils import display_comparison, prompt_int, prompt_float
 
 
 # --- 1. Pencerminan (Flipping) ---

@@ -1,6 +1,6 @@
 """Operasi Global: histogram citra dan ekualisasi histogram."""
 import numpy as np
-from NewEra.utils import display_comparison, prompt_int
+from .utils import display_comparison, prompt_int
 
 def _equalize_channel(channel, max_level=255):
     """Ko = floor(Ci * (2^k - 1) / (w*h)); Ci adalah histogram kumulatif."""

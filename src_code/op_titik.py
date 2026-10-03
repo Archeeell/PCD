@@ -1,6 +1,6 @@
 """Operasi Titik (GST): brightness, contrast, negation, grayscale, dan thresholding."""
 import numpy as np
-from NewEra.utils import display_comparison, prompt_int, prompt_float
+from .utils import display_comparison, prompt_int, prompt_float
 
 def adjust_brightness(img_array, value):
     """Modifikasi kecemerlangan: Ko = Ki + c, dibatasi pada rentang 0-255."""

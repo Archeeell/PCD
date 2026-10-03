@@ -1,6 +1,6 @@
 """Operasi Bertetangga / Persekitaran sesuai materi kuliah (mask SUM OF PRODUCTS)."""
 import numpy as np
-from NewEra.utils import display_comparison, prompt_int, prompt_float
+from .utils import display_comparison, prompt_int, prompt_float
 
 SQRT2 = np.sqrt(2.0)
 GRADIENTS = {
