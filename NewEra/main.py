@@ -7,15 +7,17 @@ lalu mendelegasikan tiap operasi ke modul op_*.py masing-masing.
 import os
 from NewEra.utils import get_available_images, load_image, IMG_DIR, prompt_int
 
-import NewEra.op_histogram
-import NewEra.op_brightness
-import NewEra.op_contrast
-import NewEra.op_invert
-import NewEra.op_color_convert
-import NewEra.op_threshold
-import NewEra.op_geometri
-import NewEra.op_bingkai
-import NewEra.op_global
+from NewEra import (
+    op_histogram,
+    op_brightness,
+    op_contrast,
+    op_invert,
+    op_color_convert,
+    op_threshold,
+    op_geometri,
+    op_bingkai,
+    op_global,
+)
 
 # Peta nomor menu -> modul yang menanganinya.
 # Untuk menambah operasi baru: buat file op_baru.py dengan fungsi run(original_img),
