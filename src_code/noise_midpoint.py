@@ -7,6 +7,13 @@ from pathlib import Path
 import numpy as np
 from PIL import Image
 
+try:
+    from .utils import display_comparison, prompt_int
+except ImportError:
+    import sys
+    sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+    from src_code.utils import display_comparison, prompt_int
+
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_INPUTS = ("gambar_blur.png", "gambar_noise.png", "gambar_gelap.png")
 WINDOW = 3
@@ -58,6 +65,17 @@ def main() -> None:
     if missing:
         parser.error("File input tidak ditemukan: " + ", ".join(map(str, missing)))
     process(inputs, args.output_dir, args.window)
+
+
+def run(original_img: np.ndarray) -> None:
+    """Entry point interaktif untuk dipanggil dari main.py."""
+    print("\n--- REDUKSI NOISE: FILTER MID-POINT ---")
+    window = prompt_int("Masukkan ukuran jendela Mid-point ganjil (3, 5, 7, ...): ", min_val=1)
+    if window % 2 == 0:
+        print("Ukuran genap tidak valid.")
+        return
+    result = midpoint_filter(original_img, window)
+    display_comparison(original_img, result, f"Mid-point {window}x{window}")
 
 
 if __name__ == "__main__":

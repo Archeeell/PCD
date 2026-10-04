@@ -7,6 +7,13 @@ from pathlib import Path
 import numpy as np
 from PIL import Image
 
+try:
+    from .utils import display_comparison, prompt_int
+except ImportError:
+    import sys
+    sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+    from src_code.utils import display_comparison, prompt_int
+
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_INPUTS = ("gambar_blur.png", "gambar_noise.png", "gambar_gelap.png")
 SIGMA = 1.0
@@ -67,6 +74,18 @@ def main() -> None:
     if missing:
         parser.error("File input tidak ditemukan: " + ", ".join(map(str, missing)))
     process(inputs, args.output_dir, args.size, args.sigma)
+
+
+def run(original_img: np.ndarray) -> None:
+    """Entry point interaktif untuk dipanggil dari main.py."""
+    print("\n--- REDUKSI NOISE: FILTER GAUSSIAN ---")
+    size = prompt_int("Masukkan ukuran mask Gaussian ganjil (3, 5, 7, ...): ", min_val=1)
+    if size % 2 == 0:
+        print("Ukuran genap tidak valid.")
+        return
+    sigma_val = float(input("Masukkan nilai sigma Gaussian (default 1.0): ").strip() or "1.0")
+    result = gaussian_filter(original_img, size, sigma_val)
+    display_comparison(original_img, result, f"Gaussian {size}x{size} (sigma={sigma_val})")
 
 
 if __name__ == "__main__":

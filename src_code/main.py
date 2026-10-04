@@ -11,9 +11,34 @@ if __package__ in (None, ""):
     sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
     from src_code.utils import get_available_images, load_image, IMG_DIR, prompt_int
     from src_code import op_titik, op_geometri, op_bingkai, op_global, op_neighborhood
+    from src_code import noise_gaussian, noise_mean, noise_median, noise_midpoint
 else:
     from .utils import get_available_images, load_image, IMG_DIR, prompt_int
     from . import op_titik, op_geometri, op_bingkai, op_global, op_neighborhood
+    from . import noise_gaussian, noise_mean, noise_median, noise_midpoint
+
+NOISE_HANDLERS = {
+    1: noise_gaussian.run,
+    2: noise_mean.run,
+    3: noise_median.run,
+    4: noise_midpoint.run,
+}
+NOISE_LABELS = {
+    1: "Filter Gaussian",
+    2: "Filter Mean",
+    3: "Filter Median",
+    4: "Filter Mid-point",
+}
+
+def run_noise_menu(original_img):
+    print("\n--- REDUKSI NOISE ---")
+    for num, label in NOISE_LABELS.items():
+        print(f"[{num}] {label}")
+    print("[0] Kembali")
+    op = prompt_int("Pilih filter noise: ", min_val=0, max_val=len(NOISE_LABELS))
+    if op == 0:
+        return
+    NOISE_HANDLERS[op](original_img)
 
 MENU_HANDLERS = {
     1: op_titik.run,
@@ -21,6 +46,7 @@ MENU_HANDLERS = {
     3: op_bingkai.run,
     4: op_global.run,
     5: op_neighborhood.run,
+    6: run_noise_menu,
 }
 MENU_LABELS = {
     1: "Operasi Titik (Brightness / Contrast / Negasi / Grayscale / Thresholding)",
@@ -28,6 +54,7 @@ MENU_LABELS = {
     3: "Operasi Berbasis Bingkai (Blending / Gerakan / Logika)",
     4: "Operasi Global (Histogram / Ekualisasi Histogram)",
     5: "Operasi Bertetangga (Edge / Smoothing / Sharpening / Noise / Emboss)",
+    6: "Reduksi Noise (Gaussian / Mean / Median / Mid-point)",
 }
 
 def select_image():
