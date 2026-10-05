@@ -1,20 +1,193 @@
 """
 utils.py
 Berisi fungsi-fungsi bantu yang dipakai bersama oleh semua modul operasi:
+- Kelas Citra: representasi citra sebagai daftar kanal 2D tanpa numpy
 - Membaca daftar gambar & memuat gambar
-- Menghitung histogram
+- Menghitung histogram (manual, tanpa numpy)
 - Membandingkan histogram
 - Menampilkan hasil perbandingan (citra asli vs hasil transformasi)
 """
 
 import os
-import numpy as np
+import sys
 from PIL import Image
 import matplotlib.pyplot as plt
 
 PROJECT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 IMG_DIR = os.path.join(PROJECT_DIR, "img")
 
+
+# ---------------------------------------------------------------------------
+# Kelas Citra: representasi internal tanpa numpy
+# kanal[c][y][x] -> nilai integer 0-255
+# ---------------------------------------------------------------------------
+
+class Citra:
+    """
+    Representasi citra sebagai daftar kanal 2D.
+      lebar  (int) : lebar citra (jumlah kolom)
+      tinggi (int) : tinggi citra (jumlah baris)
+      mode   (str) : "L" untuk grayscale, "RGB" untuk warna
+      kanal  (list): list[kanal_idx][baris][kolom] = nilai int 0-255
+    """
+    __slots__ = ("lebar", "tinggi", "mode", "kanal")
+
+    def __init__(self, lebar, tinggi, mode, kanal):
+        self.lebar  = lebar
+        self.tinggi = tinggi
+        self.mode   = mode    # "L" atau "RGB"
+        self.kanal  = kanal   # list of 2D list of int
+
+
+def buat_kosong(lebar, tinggi, mode, nilai=0):
+    """Buat Citra kosong; semua piksel diisi dengan nilai (default 0)."""
+    n = 1 if mode == "L" else 3
+    kanal = [[[nilai] * lebar for _ in range(tinggi)] for _ in range(n)]
+    return Citra(lebar, tinggi, mode, kanal)
+
+
+def salin(citra):
+    """Buat salinan dalam (deep copy) dari sebuah Citra."""
+    kanal_baru = []
+    for c in range(len(citra.kanal)):
+        kanal_baru.append([list(baris) for baris in citra.kanal[c]])
+    return Citra(citra.lebar, citra.tinggi, citra.mode, kanal_baru)
+
+
+def terapkan_per_kanal(citra, fungsi):
+    """
+    Terapkan fungsi(kanal_2d, indeks_kanal) -> kanal_2d baru pada tiap kanal.
+    Mengembalikan Citra baru dengan mode & ukuran yang sama.
+    """
+    kanal_baru = [fungsi(citra.kanal[c], c) for c in range(len(citra.kanal))]
+    return Citra(citra.lebar, citra.tinggi, citra.mode, kanal_baru)
+
+
+def ke_pil(citra):
+    """Konversi Citra ke objek PIL.Image menggunakan putpixel."""
+    img = Image.new(citra.mode, (citra.lebar, citra.tinggi))
+    if citra.mode == "L":
+        for y in range(citra.tinggi):
+            row = citra.kanal[0][y]
+            for x in range(citra.lebar):
+                img.putpixel((x, y), row[x])
+    else:
+        r_k, g_k, b_k = citra.kanal[0], citra.kanal[1], citra.kanal[2]
+        for y in range(citra.tinggi):
+            r_row, g_row, b_row = r_k[y], g_k[y], b_k[y]
+            for x in range(citra.lebar):
+                img.putpixel((x, y), (r_row[x], g_row[x], b_row[x]))
+    return img
+
+
+def dari_pil(gambar):
+    """
+    Konversi PIL.Image ke Citra.
+    Piksel dibaca sekali dengan getpixel lalu disimpan ke list 2D per kanal.
+    gambar harus sudah dalam mode "L" atau "RGB".
+    """
+    lebar, tinggi = gambar.size
+    mode = gambar.mode
+
+    if mode == "L":
+        kanal = [[[0] * lebar for _ in range(tinggi)]]
+        for y in range(tinggi):
+            row = kanal[0][y]
+            for x in range(lebar):
+                row[x] = gambar.getpixel((x, y))
+    else:
+        kanal = [[[0] * lebar for _ in range(tinggi)] for _ in range(3)]
+        r_k, g_k, b_k = kanal[0], kanal[1], kanal[2]
+        for y in range(tinggi):
+            r_row, g_row, b_row = r_k[y], g_k[y], b_k[y]
+            for x in range(lebar):
+                p = gambar.getpixel((x, y))
+                r_row[x] = p[0]
+                g_row[x] = p[1]
+                b_row[x] = p[2]
+
+    return Citra(lebar, tinggi, mode, kanal)
+
+
+# ---------------------------------------------------------------------------
+# Fungsi bantu umum
+# ---------------------------------------------------------------------------
+
+def klem(nilai):
+    """Batasi nilai integer ke rentang [0, 255]."""
+    if nilai < 0:
+        return 0
+    if nilai > 255:
+        return 255
+    return nilai
+
+
+def indeks_pantul(i, n):
+    """
+    Hitung indeks setelah padding pantul (numpy 'reflect') untuk dimensi n.
+    Reflect TIDAK mengulangi piksel tepi: -1 -> 1, n -> n-2.
+    """
+    if n == 1:
+        return 0
+    period = 2 * (n - 1)
+    i = i % period
+    if i < 0:
+        i += period
+    if i >= n:
+        i = period - i
+    return i
+
+
+def buat_padding_pantul(kanal_2d, tinggi, lebar, py_bef, py_aft, px_bef, px_aft):
+    """
+    Buat salinan kanal dengan padding pantul (reflect) di semua sisi.
+    Nilai disimpan sebagai float untuk komputasi numerik.
+    """
+    h_baru = tinggi + py_bef + py_aft
+    w_baru = lebar  + px_bef + px_aft
+    hasil = [[0.0] * w_baru for _ in range(h_baru)]
+
+    for y_baru in range(h_baru):
+        y_src = indeks_pantul(y_baru - py_bef, tinggi)
+        src_baris = kanal_2d[y_src]
+        dst_baris = hasil[y_baru]
+        for x_baru in range(w_baru):
+            x_src = indeks_pantul(x_baru - px_bef, lebar)
+            dst_baris[x_baru] = src_baris[x_src]
+
+    return hasil
+
+
+def korelasi_kanal(kanal_2d, tinggi, lebar, kernel, kh, kw):
+    """
+    Hitung korelasi (SUM OF PRODUCTS, kernel TIDAK dibalik) antara kanal_2d
+    dan kernel berukuran kh x kw. Padding pantul (reflect).
+    Mengembalikan list 2D float.
+    """
+    py_bef = (kh - 1) // 2
+    py_aft = kh - 1 - py_bef
+    px_bef = (kw - 1) // 2
+    px_aft = kw - 1 - px_bef
+
+    padded = buat_padding_pantul(kanal_2d, tinggi, lebar, py_bef, py_aft, px_bef, px_aft)
+    hasil  = [[0.0] * lebar for _ in range(tinggi)]
+
+    for y in range(tinggi):
+        for x in range(lebar):
+            total = 0.0
+            for ky in range(kh):
+                row_p = padded[y + ky]
+                row_k = kernel[ky]
+                for kx in range(kw):
+                    total += row_p[x + kx] * row_k[kx]
+            hasil[y][x] = total
+
+    return hasil
+
+
+# ---------------------------------------------------------------------------
+# Membaca & memuat gambar
+# ---------------------------------------------------------------------------
 
 def get_available_images():
     """Mengembalikan daftar nama file gambar yang tersedia di folder IMG_DIR."""
@@ -26,12 +199,25 @@ def get_available_images():
 
 
 def load_image(filepath):
-    """Memuat gambar dari path dan mengembalikannya sebagai array numpy (uint8)."""
+    """
+    Memuat gambar dari path dan mengembalikannya sebagai Citra.
+    Mode selain L/RGB dikonversi ke RGB.
+    Piksel dibaca sekali saja dengan getpixel; semua proses pakai list.
+    """
     img = Image.open(filepath)
     if img.mode not in ('L', 'RGB'):
         img = img.convert('RGB')
-    return np.array(img, dtype=np.uint8)
+    return dari_pil(img)
 
+
+def simpan_pil(citra, path):
+    """Simpan Citra ke file via PIL (dipakai oleh noise_*.py process())."""
+    ke_pil(citra).save(path)
+
+
+# ---------------------------------------------------------------------------
+# run_standalone
+# ---------------------------------------------------------------------------
 
 def run_standalone(operation):
     """Pilih citra, lalu jalankan satu modul operasi tanpa src_code/main.py."""
@@ -46,88 +232,120 @@ def run_standalone(operation):
     if choice == 0:
         print("Operasi dibatalkan.")
         return
-    path = os.path.join(IMG_DIR, images[choice - 1])
-    image = load_image(path)
-    channels = "Grayscale" if image.ndim == 2 else "RGB"
-    print(f"\nMemuat: {path} | Resolusi: {image.shape[1]}x{image.shape[0]} | Saluran: {channels}")
-    operation(image)
+    path   = os.path.join(IMG_DIR, images[choice - 1])
+    citra  = load_image(path)
+    saluran = "Grayscale" if citra.mode == "L" else "RGB"
+    print(f"\nMemuat: {path} | Resolusi: {citra.lebar}x{citra.tinggi} | Saluran: {saluran}")
+    operation(citra)
 
 
-def compute_histogram(img_array):
-    """Menghitung histogram citra. Grayscale -> {'gray': ...}, RGB -> {'r','g','b': ...}."""
-    if img_array.ndim == 2:
-        hist, _ = np.histogram(img_array, bins=256, range=(0, 256))
+# ---------------------------------------------------------------------------
+# Histogram (manual, tanpa numpy)
+# ---------------------------------------------------------------------------
+
+def compute_histogram(citra):
+    """
+    Menghitung histogram Citra secara manual (256 bin per kanal).
+    Grayscale -> {'gray': list[256]}.
+    RGB       -> {'r': list[256], 'g': list[256], 'b': list[256]}.
+    """
+    if citra.mode == "L":
+        hist = [0] * 256
+        for y in range(citra.tinggi):
+            for x in range(citra.lebar):
+                hist[citra.kanal[0][y][x]] += 1
         return {'gray': hist}
-    elif img_array.ndim == 3:
-        hist_r, _ = np.histogram(img_array[:, :, 0], bins=256, range=(0, 256))
-        hist_g, _ = np.histogram(img_array[:, :, 1], bins=256, range=(0, 256))
-        hist_b, _ = np.histogram(img_array[:, :, 2], bins=256, range=(0, 256))
-        return {'r': hist_r, 'g': hist_g, 'b': hist_b}
+    else:
+        hr, hg, hb = [0]*256, [0]*256, [0]*256
+        r_k, g_k, b_k = citra.kanal[0], citra.kanal[1], citra.kanal[2]
+        for y in range(citra.tinggi):
+            for x in range(citra.lebar):
+                hr[r_k[y][x]] += 1
+                hg[g_k[y][x]] += 1
+                hb[b_k[y][x]] += 1
+        return {'r': hr, 'g': hg, 'b': hb}
 
 
 def are_histograms_identical(hist1, hist2):
-    """Mengecek apakah dua histogram identik (jumlah kunci dan nilai sama persis)."""
+    """Mengecek apakah dua histogram identik (kunci & nilai sama persis)."""
     if set(hist1.keys()) != set(hist2.keys()):
         return False
     for k in hist1:
-        if not np.array_equal(hist1[k], hist2[k]):
+        if hist1[k] != hist2[k]:
             return False
     return True
 
 
-def display_comparison(original, transformed, title_operation):
-    """Menampilkan 2x2 grid: citra asli, citra hasil, histogram asli, histogram hasil."""
-    hist_orig = compute_histogram(original)
-    hist_trans = compute_histogram(transformed)
-    identical = are_histograms_identical(hist_orig, hist_trans)
+# ---------------------------------------------------------------------------
+# Tampilan
+# ---------------------------------------------------------------------------
+
+def display_comparison(citra_asli, citra_hasil, judul_operasi):
+    """
+    Menampilkan grid 2x2: citra asli, citra hasil, histogram asli, histogram hasil.
+    Menerima objek Citra; konversi ke PIL.Image untuk imshow.
+    """
+    hist_orig  = compute_histogram(citra_asli)
+    hist_trans = compute_histogram(citra_hasil)
+    identical  = are_histograms_identical(hist_orig, hist_trans)
+
+    pil_asli  = ke_pil(citra_asli)
+    pil_hasil = ke_pil(citra_hasil)
 
     fig, axes = plt.subplots(2, 2, figsize=(10, 8))
 
-    # Tampilan Citra Asli
-    if original.ndim == 2:
-        axes[0, 0].imshow(original, cmap='gray', vmin=0, vmax=255)
-    else:
-        axes[0, 0].imshow(original)
+    cmap_a = 'gray' if citra_asli.mode  == "L" else None
+    cmap_h = 'gray' if citra_hasil.mode == "L" else None
+    axes[0, 0].imshow(pil_asli,  cmap=cmap_a, vmin=0, vmax=255)
     axes[0, 0].set_title("Citra Asli")
     axes[0, 0].axis('off')
-
-    # Tampilan Citra Transformasi
-    if transformed.ndim == 2:
-        axes[0, 1].imshow(transformed, cmap='gray', vmin=0, vmax=255)
-    else:
-        axes[0, 1].imshow(transformed)
-    axes[0, 1].set_title(f"Hasil: {title_operation}")
+    axes[0, 1].imshow(pil_hasil, cmap=cmap_h, vmin=0, vmax=255)
+    axes[0, 1].set_title(f"Hasil: {judul_operasi}")
     axes[0, 1].axis('off')
 
-    # Plot Histogram Asli
-    if 'gray' in hist_orig:
-        axes[1, 0].plot(hist_orig['gray'], color='black', label='Grayscale')
-    else:
-        axes[1, 0].plot(hist_orig['r'], color='red', label='Red')
-        axes[1, 0].plot(hist_orig['g'], color='green', label='Green')
-        axes[1, 0].plot(hist_orig['b'], color='blue', label='Blue')
-    axes[1, 0].set_title("Histogram Citra Asli")
-    axes[1, 0].set_xlim([0, 255])
-    axes[1, 0].legend()
-    axes[1, 0].grid(True, linestyle=':', alpha=0.6)
+    def _plot_hist(ax, hist, judul):
+        if 'gray' in hist:
+            ax.plot(hist['gray'], color='black', label='Grayscale')
+        else:
+            ax.plot(hist['r'], color='red',   label='Red')
+            ax.plot(hist['g'], color='green', label='Green')
+            ax.plot(hist['b'], color='blue',  label='Blue')
+        ax.set_title(judul)
+        ax.set_xlim([0, 255])
+        ax.legend()
+        ax.grid(True, linestyle=':', alpha=0.6)
 
-    # Plot Histogram Transformasi
-    if 'gray' in hist_trans:
-        axes[1, 1].plot(hist_trans['gray'], color='black', label='Grayscale')
-    else:
-        axes[1, 1].plot(hist_trans['r'], color='red', label='Red')
-        axes[1, 1].plot(hist_trans['g'], color='green', label='Green')
-        axes[1, 1].plot(hist_trans['b'], color='blue', label='Blue')
-
-    status_text = "IDENTIK (Citra Sama)" if identical else "TIDAK IDENTIK"
-    axes[1, 1].set_title(f"Histogram Hasil [{status_text}]")
-    axes[1, 1].set_xlim([0, 255])
-    axes[1, 1].legend()
-    axes[1, 1].grid(True, linestyle=':', alpha=0.6)
+    _plot_hist(axes[1, 0], hist_orig, "Histogram Citra Asli")
+    status = "IDENTIK (Citra Sama)" if identical else "TIDAK IDENTIK"
+    _plot_hist(axes[1, 1], hist_trans, f"Histogram Hasil [{status}]")
 
     plt.tight_layout()
     plt.show()
 
+
+def display_dual_input_result(citra_a, citra_b, citra_hasil, judul_operasi):
+    """
+    Menampilkan citra A, citra B, dan citra hasil operasi bingkai berdampingan.
+    """
+    fig, axes = plt.subplots(1, 3, figsize=(12, 5))
+    pasangan = [
+        (citra_a,    "Citra A"),
+        (citra_b,    "Citra B"),
+        (citra_hasil, f"Hasil: {judul_operasi}"),
+    ]
+    for ax, (citra, label) in zip(axes, pasangan):
+        pil_img = ke_pil(citra)
+        cmap = 'gray' if citra.mode == "L" else None
+        ax.imshow(pil_img, cmap=cmap, vmin=0, vmax=255)
+        ax.set_title(label)
+        ax.axis('off')
+    plt.tight_layout()
+    plt.show()
+
+
+# ---------------------------------------------------------------------------
+# Prompt input
+# ---------------------------------------------------------------------------
 
 def prompt_int(message, min_val=None, max_val=None):
     """Meminta input integer dari user dengan validasi rentang & penanganan error."""
@@ -152,12 +370,17 @@ def prompt_float(message):
             print("Input tidak valid, masukkan angka desimal (misal 1.5).")
 
 
-def select_second_image(reference_shape):
+# ---------------------------------------------------------------------------
+# Pemilihan citra kedua (untuk op_bingkai)
+# ---------------------------------------------------------------------------
+
+def select_second_image(citra_referensi):
     """
-    Meminta user memilih citra kedua dari folder IMG_DIR untuk operasi
-    berbasis bingkai (dua citra). Citra kedua akan otomatis di-resize
-    (crop/pad sederhana) agar sesuai ukuran citra pertama bila berbeda.
-    Mengembalikan array numpy citra kedua, atau None jika dibatalkan.
+    Meminta user memilih citra kedua dari folder IMG_DIR.
+
+    KOREKSI (Deviasi #2): jika ukuran atau mode A & B berbeda,
+    potong ke area bersama (min lebar, min tinggi dari pojok kiri-atas),
+    dan jika mode berbeda, konversi grayscale ke RGB dengan duplikasi kanal.
     """
     images = get_available_images()
     if not images:
@@ -172,35 +395,27 @@ def select_second_image(reference_shape):
     if choice == 0:
         return None
 
-    second_img = load_image(os.path.join(IMG_DIR, images[choice - 1]))
+    citra_b = load_image(os.path.join(IMG_DIR, images[choice - 1]))
 
-    # Samakan dimensi tinggi x lebar dengan citra pertama (crop ke ukuran terkecil)
-    target_h, target_w = reference_shape[0], reference_shape[1]
-    h, w = second_img.shape[0], second_img.shape[1]
-    crop_h, crop_w = min(h, target_h), min(w, target_w)
-    second_img = second_img[:crop_h, :crop_w]
+    # Samakan ukuran: potong ke area bersama
+    crop_lebar  = min(citra_referensi.lebar,  citra_b.lebar)
+    crop_tinggi = min(citra_referensi.tinggi, citra_b.tinggi)
 
-    if crop_h != target_h or crop_w != target_w:
-        print(f"Peringatan: ukuran citra kedua berbeda, dipotong menjadi {crop_w}x{crop_h} "
-              f"agar sesuai area citra pertama.")
+    if crop_lebar != citra_b.lebar or crop_tinggi != citra_b.tinggi:
+        print(f"Peringatan: ukuran citra kedua berbeda, dipotong menjadi "
+              f"{crop_lebar}x{crop_tinggi} agar sesuai area citra pertama.")
+        kanal_crop = []
+        for c in range(len(citra_b.kanal)):
+            kanal_crop.append([list(citra_b.kanal[c][y][:crop_lebar])
+                               for y in range(crop_tinggi)])
+        citra_b = Citra(crop_lebar, crop_tinggi, citra_b.mode, kanal_crop)
 
-    return second_img
+    # Samakan mode: jika berbeda konversi grayscale ke RGB
+    if citra_referensi.mode != citra_b.mode:
+        print(f"Peringatan: mode citra berbeda ({citra_referensi.mode} vs {citra_b.mode}), "
+              f"grayscale dikonversi ke RGB.")
+        if citra_b.mode == "L":
+            kanal_rgb = [[list(baris) for baris in citra_b.kanal[0]] for _ in range(3)]
+            citra_b = Citra(citra_b.lebar, citra_b.tinggi, "RGB", kanal_rgb)
 
-
-def display_dual_input_result(img_a, img_b, result, title_operation):
-    """
-    Menampilkan citra A, citra B, dan citra hasil operasi berbasis bingkai
-    (dipakai untuk blending, deteksi gerakan, operasi logika) berdampingan.
-    """
-    fig, axes = plt.subplots(1, 3, figsize=(12, 5))
-
-    for ax, img, label in zip(axes, [img_a, img_b, result], ["Citra A", "Citra B", f"Hasil: {title_operation}"]):
-        if img.ndim == 2:
-            ax.imshow(img, cmap='gray', vmin=0, vmax=255)
-        else:
-            ax.imshow(img)
-        ax.set_title(label)
-        ax.axis('off')
-
-    plt.tight_layout()
-    plt.show()
+    return citra_b
