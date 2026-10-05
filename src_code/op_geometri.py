@@ -14,108 +14,183 @@ Rumus mengikuti materi kuliah Pengolahan Citra (Idhawati Hestiningsih):
 - Scaling                : x' = Sh * x, y' = Sv * y
 """
 
-import numpy as np
+import math
 if __package__ in (None, ""):
     import sys
     from pathlib import Path
     sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
-    from src_code.utils import display_comparison, prompt_int, prompt_float, run_standalone
+    from src_code.utils import (Citra, buat_kosong,
+                                display_comparison, prompt_int, prompt_float, run_standalone)
 else:
-    from .utils import display_comparison, prompt_int, prompt_float, run_standalone
+    from .utils import (Citra, buat_kosong,
+                        display_comparison, prompt_int, prompt_float, run_standalone)
 
 
 # --- 1. Pencerminan (Flipping) ---
 
-def flip_horizontal(img_array):
+def flip_horizontal(citra):
     """x' = w - 1 - x -> membalik kolom (kiri-kanan)."""
-    return img_array[:, ::-1, ...] if img_array.ndim == 3 else img_array[:, ::-1]
+    hasil = buat_kosong(citra.lebar, citra.tinggi, citra.mode)
+    w = citra.lebar
+    for c in range(len(citra.kanal)):
+        k_src = citra.kanal[c]
+        k_dst = hasil.kanal[c]
+        for y in range(citra.tinggi):
+            src_row = k_src[y]
+            dst_row = k_dst[y]
+            for x in range(w):
+                dst_row[x] = src_row[w - 1 - x]
+    return hasil
 
 
-def flip_vertical(img_array):
+def flip_vertical(citra):
     """y' = h - 1 - y -> membalik baris (atas-bawah)."""
-    return img_array[::-1, :, ...] if img_array.ndim == 3 else img_array[::-1, :]
+    hasil = buat_kosong(citra.lebar, citra.tinggi, citra.mode)
+    h = citra.tinggi
+    for c in range(len(citra.kanal)):
+        k_src = citra.kanal[c]
+        k_dst = hasil.kanal[c]
+        for y in range(h):
+            dst_row = k_dst[y]
+            src_row = k_src[h - 1 - y]
+            for x in range(citra.lebar):
+                dst_row[x] = src_row[x]
+    return hasil
 
 
-def flip_combined(img_array):
+def flip_combined(citra):
     """Kombinasi pencerminan horisontal + vertikal."""
-    return flip_vertical(flip_horizontal(img_array))
+    return flip_vertical(flip_horizontal(citra))
 
 
 # --- 2. Rotasi (Rotating) ---
 
-def rotate_90_cw(img_array):
-    """Rotasi 1/4 putaran (90 derajat) searah jarum jam. Lebar & tinggi tertukar."""
-    return np.rot90(img_array, k=-1)
-
-
-def rotate_180_cw(img_array):
-    """Rotasi 1/2 putaran (180 derajat) searah jarum jam."""
-    return np.rot90(img_array, k=2)
-
-
-def rotate_free(img_array, angle_degrees):
+def rotate_90_cw(citra):
     """
-    Rotasi bebas berlawanan arah jarum jam (CCW) sebesar angle_degrees,
-    menggunakan rumus x' = x cos(t) + y sin(t), y' = -x sin(t) + y cos(t),
-    dengan interpolasi nearest-neighbor sederhana dan ukuran kanvas baru
-    w' = |w cos(t)| + |h sin(t)|, h' = |w sin(t)| + |h cos(t)|.
+    Rotasi 1/4 putaran (90 derajat) searah jarum jam (sesuai np.rot90(k=-1)).
+    Dimensi baru: lebar_baru = tinggi_src, tinggi_baru = lebar_src.
+    Rumus inverse: dst[y_dst=x_src][x_dst=h_src-1-y_src] = src[y_src][x_src].
     """
-    theta = np.radians(angle_degrees)
-    h, w = img_array.shape[0], img_array.shape[1]
+    # np.rot90(k=-1) mengubah (tinggi, lebar) -> (lebar, tinggi)
+    lebar_baru  = citra.tinggi   # kolom baru = baris lama
+    tinggi_baru = citra.lebar    # baris baru = kolom lama
+    hasil = buat_kosong(lebar_baru, tinggi_baru, citra.mode)
+    h_src = citra.tinggi
+    for c in range(len(citra.kanal)):
+        k_src = citra.kanal[c]
+        k_dst = hasil.kanal[c]
+        for y_src in range(citra.tinggi):
+            src_row = k_src[y_src]
+            x_dst = h_src - 1 - y_src   # kolom tujuan
+            for x_src in range(citra.lebar):
+                y_dst = x_src            # baris tujuan
+                k_dst[y_dst][x_dst] = src_row[x_src]
+    return hasil
 
-    new_w = int(abs(w * np.cos(theta)) + abs(h * np.sin(theta)))
-    new_h = int(abs(w * np.sin(theta)) + abs(h * np.cos(theta)))
 
-    if img_array.ndim == 3:
-        result = np.zeros((new_h, new_w, img_array.shape[2]), dtype=np.uint8)
-    else:
-        result = np.zeros((new_h, new_w), dtype=np.uint8)
+def rotate_180_cw(citra):
+    """
+    Rotasi 1/2 putaran (180 derajat). Rumus: x' = w-1-x, y' = h-1-y.
+    (sesuai np.rot90(k=2))
+    """
+    w, h = citra.lebar, citra.tinggi
+    hasil = buat_kosong(w, h, citra.mode)
+    for c in range(len(citra.kanal)):
+        k_src = citra.kanal[c]
+        k_dst = hasil.kanal[c]
+        for y in range(h):
+            src_row = k_src[y]
+            dst_row = k_dst[h - 1 - y]
+            for x in range(w):
+                dst_row[w - 1 - x] = src_row[x]
+    return hasil
+
+
+def rotate_free(citra, angle_degrees):
+    """
+    Rotasi bebas berlawanan arah jarum jam (CCW) sebesar angle_degrees.
+    Menggunakan inverse mapping dengan nearest-neighbor dan padding hitam.
+    Ukuran kanvas: new_w = int(...), new_h = int(...) (truncation).
+    Koordinat sumber dibulatkan dengan round() (half-to-even seperti np.round).
+    Piksel di luar batas sumber = hitam (0).
+    """
+    theta = math.radians(angle_degrees)
+    cos_t = math.cos(theta)
+    sin_t = math.sin(theta)
+    h, w  = citra.tinggi, citra.lebar
+
+    new_w = int(abs(w * cos_t) + abs(h * sin_t))
+    new_h = int(abs(w * sin_t) + abs(h * cos_t))
+
+    hasil = buat_kosong(new_w, new_h, citra.mode)
 
     cx_old, cy_old = w / 2, h / 2
     cx_new, cy_new = new_w / 2, new_h / 2
 
-    # Untuk setiap piksel tujuan, cari piksel sumber (inverse mapping) agar tidak ada lubang.
-    ys, xs = np.meshgrid(np.arange(new_h), np.arange(new_w), indexing='ij')
-    x_rel = xs - cx_new
-    y_rel = ys - cy_new
-
-    # Inverse rotation (CW) untuk memetakan tujuan -> sumber
-    src_x = x_rel * np.cos(theta) - y_rel * np.sin(theta) + cx_old
-    src_y = x_rel * np.sin(theta) + y_rel * np.cos(theta) + cy_old
-
-    src_x_round = np.round(src_x).astype(int)
-    src_y_round = np.round(src_y).astype(int)
-
-    valid = (src_x_round >= 0) & (src_x_round < w) & (src_y_round >= 0) & (src_y_round < h)
-
-    result[ys[valid], xs[valid]] = img_array[src_y_round[valid], src_x_round[valid]]
-
-    return result
+    for c in range(len(citra.kanal)):
+        k_src = citra.kanal[c]
+        k_dst = hasil.kanal[c]
+        for y_dst in range(new_h):
+            dst_row = k_dst[y_dst]
+            y_rel = y_dst - cy_new
+            for x_dst in range(new_w):
+                x_rel = x_dst - cx_new
+                # Inverse rotation (CW) untuk memetakan tujuan -> sumber
+                src_x = x_rel * cos_t - y_rel * (-sin_t) + cx_old
+                src_y = x_rel * (-sin_t) + y_rel * cos_t + cy_old
+                # numpy 'reflect' round() = half-to-even (Python built-in round)
+                src_xi = round(src_x)
+                src_yi = round(src_y)
+                if 0 <= src_xi < w and 0 <= src_yi < h:
+                    dst_row[x_dst] = k_src[src_yi][src_xi]
+                # else: tetap 0 (hitam)
+    return hasil
 
 
 # --- 3. Pemotongan (Cropping) ---
 
-def crop_image(img_array, xl, yt, xr, yb):
-    """x' = x - xL, y' = y - yT -> memotong area [xL:xR, yT:yB]."""
-    return img_array[yt:yb, xl:xr, ...] if img_array.ndim == 3 else img_array[yt:yb, xl:xr]
+def crop_image(citra, xl, yt, xr, yb):
+    """x' = x - xL, y' = y - yT -> memotong area [xL:xR) x [yT:yB)."""
+    new_w = xr - xl
+    new_h = yb - yt
+    hasil = buat_kosong(new_w, new_h, citra.mode)
+    for c in range(len(citra.kanal)):
+        k_src = citra.kanal[c]
+        k_dst = hasil.kanal[c]
+        for y in range(new_h):
+            src_row = k_src[yt + y]
+            dst_row = k_dst[y]
+            for x in range(new_w):
+                dst_row[x] = src_row[xl + x]
+    return hasil
 
 
 # --- 4. Penskalaan (Scaling) ---
 
-def scale_image(img_array, sh, sv):
+def scale_image(citra, sh, sv):
     """
     x' = Sh * x, y' = Sv * y -> memperbesar/memperkecil citra.
-    Menggunakan nearest-neighbor sesuai prinsip penyalinan piksel pada materi
-    (misal zoom-in faktor 2 menyalin tiap piksel jadi 4 piksel).
+    Nearest-neighbor: sumber = int(x/Sh) diklem ke w-1.
+    new_w = max(1, int(round(w*Sh))), dst[y][x] = src[int(y/Sv)][int(x/Sh)].
     """
-    h, w = img_array.shape[0], img_array.shape[1]
+    h, w  = citra.tinggi, citra.lebar
     new_w = max(1, int(round(w * sh)))
     new_h = max(1, int(round(h * sv)))
 
-    src_x = np.clip((np.arange(new_w) / sh).astype(int), 0, w - 1)
-    src_y = np.clip((np.arange(new_h) / sv).astype(int), 0, h - 1)
+    # Hitung indeks sumber untuk setiap posisi tujuan (sekali, efisien)
+    src_x = [min(int(x / sh), w - 1) for x in range(new_w)]
+    src_y = [min(int(y / sv), h - 1) for y in range(new_h)]
 
-    return img_array[np.ix_(src_y, src_x)] if img_array.ndim == 2 else img_array[src_y][:, src_x]
+    hasil = buat_kosong(new_w, new_h, citra.mode)
+    for c in range(len(citra.kanal)):
+        k_src = citra.kanal[c]
+        k_dst = hasil.kanal[c]
+        for y_dst in range(new_h):
+            src_row = k_src[src_y[y_dst]]
+            dst_row = k_dst[y_dst]
+            for x_dst in range(new_w):
+                dst_row[x_dst] = src_row[src_x[x_dst]]
+    return hasil
 
 
 # --- Menu ---
@@ -124,14 +199,11 @@ def _submenu_flip(original_img):
     print("\n[1] Horisontal  [2] Vertikal  [3] Kombinasi")
     choice = prompt_int("Pilih jenis pencerminan: ", min_val=1, max_val=3)
     if choice == 1:
-        result = flip_horizontal(original_img)
-        label = "Pencerminan Horisontal"
+        result, label = flip_horizontal(original_img), "Pencerminan Horisontal"
     elif choice == 2:
-        result = flip_vertical(original_img)
-        label = "Pencerminan Vertikal"
+        result, label = flip_vertical(original_img),   "Pencerminan Vertikal"
     else:
-        result = flip_combined(original_img)
-        label = "Pencerminan Kombinasi"
+        result, label = flip_combined(original_img),   "Pencerminan Kombinasi"
     display_comparison(original_img, result, label)
 
 
@@ -139,20 +211,18 @@ def _submenu_rotate(original_img):
     print("\n[1] 90 derajat CW  [2] 180 derajat CW  [3] Rotasi bebas (CCW)")
     choice = prompt_int("Pilih jenis rotasi: ", min_val=1, max_val=3)
     if choice == 1:
-        result = rotate_90_cw(original_img)
-        label = "Rotasi 90 CW"
+        result, label = rotate_90_cw(original_img),  "Rotasi 90 CW"
     elif choice == 2:
-        result = rotate_180_cw(original_img)
-        label = "Rotasi 180 CW"
+        result, label = rotate_180_cw(original_img), "Rotasi 180 CW"
     else:
         angle = prompt_float("Masukkan sudut rotasi CCW dalam derajat (misal 25): ")
         result = rotate_free(original_img, angle)
-        label = f"Rotasi Bebas ({angle} CCW)"
+        label  = f"Rotasi Bebas ({angle} CCW)"
     display_comparison(original_img, result, label)
 
 
 def _submenu_crop(original_img):
-    h, w = original_img.shape[0], original_img.shape[1]
+    h, w = original_img.tinggi, original_img.lebar
     print(f"\nUkuran citra saat ini: {w}x{h} (lebar x tinggi)")
     xl = prompt_int(f"Masukkan xL (0 s.d. {w - 2}): ", min_val=0, max_val=w - 2)
     xr = prompt_int(f"Masukkan xR ({xl + 1} s.d. {w}): ", min_val=xl + 1, max_val=w)
