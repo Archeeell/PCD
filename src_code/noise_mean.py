@@ -37,7 +37,7 @@ def mean_filter(citra: Citra, window: int = WINDOW) -> Citra:
         k_src  = citra.kanal[c]
         k_dst  = hasil.kanal[c]
         padded = buat_padding_pantul(k_src, citra.tinggi, citra.lebar,
-                                     pad, pad, pad, pad)
+                                    pad, pad, pad, pad)
         for y in range(citra.tinggi):
             dst_row = k_dst[y]
             for x in range(citra.lebar):
