@@ -27,6 +27,10 @@ from src_code.op_neighborhood import (smoothing, sharpening, edge_detection,
 from src_code.noise_mean import mean_filter
 from src_code.noise_median import median_filter as noise_median_filter
 from src_code.noise_midpoint import midpoint_filter
+from src_code.op_ekstraksi import (ekstrak_karakteristik, get_pixel, set_pixel,
+                                   buat_citra_baru, simpan_bmp_manual, muat_bmp_manual,
+                                   ekstrak_header_file)
+
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Matriks uji dari PDF hlm. -- 5x5 grayscale, titik (x=2, y=2) = 160
@@ -374,6 +378,59 @@ cek("SUB 0,0->0",      piksel(logic_sub(citra_1x1(0),   citra_1x1(0)),   0, 0), 
 # NOT
 cek("NOT 255->0",   piksel(logic_not(citra_1x1(255)), 0, 0), 0)
 cek("NOT 0->255",   piksel(logic_not(citra_1x1(0)),   0, 0), 255)
+
+print("\n=" * 3)
+print("UJI PEMBUATAN, KARAKTERISTIK & EKSTRAKSI CITRA")
+print("=" * 60)
+# 1. Uji Pembuatan Citra
+c_gray = buat_citra_baru(10, 8, mode="L", pola="kosong", nilai=128)
+cek("Pembuatan Grayscale Lebar", c_gray.lebar, 10)
+cek("Pembuatan Grayscale Tinggi", c_gray.tinggi, 8)
+cek("Pembuatan Grayscale Mode", c_gray.mode, "L")
+cek("Pembuatan Grayscale Nilai Dasar", get_pixel(c_gray, 0, 0), 128)
+
+c_rgb = buat_citra_baru(6, 6, mode="RGB", pola="catur", ukuran_kotak=3,
+                        warna1=(255, 0, 0), warna2=(0, 255, 0))
+cek("Pembuatan RGB Lebar", c_rgb.lebar, 6)
+cek("Pembuatan RGB Tinggi", c_rgb.tinggi, 6)
+cek("Pembuatan RGB Mode", c_rgb.mode, "RGB")
+cek("Papan Catur Kotak (0,0)", get_pixel(c_rgb, 0, 0), (255, 0, 0))
+cek("Papan Catur Kotak (3,0)", get_pixel(c_rgb, 3, 0), (0, 255, 0))
+
+# 2. Uji Ekstraksi Karakteristik
+info_g = ekstrak_karakteristik(c_gray)
+cek("Karakteristik Gray Bit Depth", info_g["bit_depth"], 8)
+cek("Karakteristik Gray Channel", info_g["jumlah_channel"], 1)
+cek("Karakteristik Gray Total Piksel", info_g["total_piksel"], 80)
+
+info_rgb = ekstrak_karakteristik(c_rgb)
+cek("Karakteristik RGB Bit Depth", info_rgb["bit_depth"], 24)
+cek("Karakteristik RGB Channel", info_rgb["jumlah_channel"], 3)
+cek("Karakteristik RGB Total Piksel", info_rgb["total_piksel"], 36)
+
+# 3. Uji Modifikasi & Ekstraksi Intensitas Titik (get_pixel & set_pixel)
+set_pixel(c_gray, 5, 4, 210)
+cek("Set/Get Intensitas Titik Gray", get_pixel(c_gray, 5, 4), 210)
+set_pixel(c_rgb, 2, 2, (10, 20, 30))
+cek("Set/Get Intensitas Titik RGB", get_pixel(c_rgb, 2, 2), (10, 20, 30))
+
+# 4. Uji Simpan & Muat BMP Biner Manual (No Library)
+import tempfile
+import os
+tmp_bmp = os.path.join(tempfile.gettempdir(), "test_manual_pcd.bmp")
+try:
+    simpan_bmp_manual(c_rgb, tmp_bmp)
+    citra_loaded, meta_loaded = muat_bmp_manual(tmp_bmp)
+    cek("BMP File Header Type", meta_loaded["tipe_file"], "Windows Bitmap (BMP)")
+    cek("BMP File Bit Depth", meta_loaded["bit_depth"], 24)
+    cek("BMP File Lebar", citra_loaded.lebar, 6)
+    cek("BMP File Tinggi", citra_loaded.tinggi, 6)
+    cek("BMP Piksel Konsistensi (0,0)", get_pixel(citra_loaded, 0, 0), (255, 0, 0))
+    cek("BMP Piksel Konsistensi (2,2)", get_pixel(citra_loaded, 2, 2), (10, 20, 30))
+    cek("BMP Piksel Konsistensi (3,0)", get_pixel(citra_loaded, 3, 0), (0, 255, 0))
+finally:
+    if os.path.exists(tmp_bmp):
+        os.remove(tmp_bmp)
 
 print("\n" + "=" * 60)
 print(f"RINGKASAN: {lulus} LULUS, {gagal} GAGAL dari {lulus+gagal} uji")

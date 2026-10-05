@@ -122,6 +122,41 @@ def klem(nilai):
     return nilai
 
 
+def get_pixel(citra, x, y):
+    """
+    Mengambil nilai intensitas titik piksel pada koordinat (x, y).
+    Grayscale -> integer 0-255.
+    RGB       -> tuple (R, G, B) integer 0-255.
+    """
+    if not (0 <= x < citra.lebar and 0 <= y < citra.tinggi):
+        raise IndexError(f"Koordinat ({x}, {y}) di luar batas citra ({citra.lebar}x{citra.tinggi})")
+    if citra.mode == "L":
+        return citra.kanal[0][y][x]
+    return (citra.kanal[0][y][x], citra.kanal[1][y][x], citra.kanal[2][y][x])
+
+
+def set_pixel(citra, x, y, nilai):
+    """
+    Mengatur nilai intensitas titik piksel pada koordinat (x, y).
+    nilai dapat berupa integer (untuk Grayscale) atau tuple/list (R, G, B).
+    """
+    if not (0 <= x < citra.lebar and 0 <= y < citra.tinggi):
+        raise IndexError(f"Koordinat ({x}, {y}) di luar batas citra ({citra.lebar}x{citra.tinggi})")
+    if citra.mode == "L":
+        citra.kanal[0][y][x] = klem(int(nilai))
+    else:
+        if isinstance(nilai, (int, float)):
+            v = klem(int(nilai))
+            citra.kanal[0][y][x] = v
+            citra.kanal[1][y][x] = v
+            citra.kanal[2][y][x] = v
+        else:
+            citra.kanal[0][y][x] = klem(int(nilai[0]))
+            citra.kanal[1][y][x] = klem(int(nilai[1]))
+            citra.kanal[2][y][x] = klem(int(nilai[2]))
+
+
+
 def indeks_pantul(i, n):
     """
     Hitung indeks setelah padding pantul (numpy 'reflect') untuk dimensi n.

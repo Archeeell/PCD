@@ -16,6 +16,7 @@ Setiap modul berjalan mandiri tanpa `main.py`:
 pip install -r requirements.txt
 
 # Jalankan modul secara langsung
+python src_code/op_ekstraksi.py
 python src_code/op_titik.py
 python src_code/op_geometri.py
 python src_code/op_bingkai.py
