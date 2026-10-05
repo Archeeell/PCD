@@ -1,31 +1,69 @@
 """Operasi Global: histogram citra dan ekualisasi histogram."""
-import numpy as np
+import math
 if __package__ in (None, ""):
     import sys
     from pathlib import Path
     sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
-    from src_code.utils import display_comparison, prompt_int, run_standalone
+    from src_code.utils import (Citra, buat_kosong,
+                                display_comparison, prompt_int, run_standalone)
 else:
-    from .utils import display_comparison, prompt_int, run_standalone
+    from .utils import (Citra, buat_kosong,
+                        display_comparison, prompt_int, run_standalone)
 
-def _equalize_channel(channel, max_level=255):
-    """Ko = floor(Ci * (2^k - 1) / (w*h)); Ci adalah histogram kumulatif."""
-    h, w = channel.shape
-    hist, _ = np.histogram(channel, bins=max_level + 1, range=(0, max_level + 1))
-    cumulative = np.cumsum(hist)
-    lut = np.floor(cumulative * max_level / (w * h) + 1e-9).astype(np.uint8)
-    return lut[channel]
 
-def histogram_equalization(img_array, max_level=255):
-    """Ekualisasi histogram; citra RGB diproses per kanal seperti implementasi semula."""
-    if img_array.ndim == 2:
-        return _equalize_channel(img_array, max_level)
-    return np.stack([_equalize_channel(img_array[..., c], max_level)
-                     for c in range(img_array.shape[2])], axis=-1)
+def _equalize_channel(kanal_2d, tinggi, lebar, max_level=255):
+    """
+    Ekualisasi satu kanal.
+    LUT: Ko = floor(Ci * max_level / (w*h) + 1e-9)
+    di mana Ci = histogram kumulatif pada nilai i.
+    bins = max_level + 1, range [0, max_level].
+    """
+    n_bins = max_level + 1
+    total  = lebar * tinggi
 
-def show_histogram(img_array):
+    # Hitung histogram
+    hist = [0] * n_bins
+    for y in range(tinggi):
+        row = kanal_2d[y]
+        for x in range(lebar):
+            v = row[x]
+            if 0 <= v <= max_level:
+                hist[v] += 1
+
+    # Hitung LUT dari histogram kumulatif
+    lut      = [0] * n_bins
+    kumulatif = 0
+    for i in range(n_bins):
+        kumulatif += hist[i]
+        lut[i] = int(math.floor(kumulatif * max_level / total + 1e-9))
+        if lut[i] > max_level:
+            lut[i] = max_level
+
+    # Terapkan LUT
+    kanal_out = [[lut[kanal_2d[y][x]] for x in range(lebar)] for y in range(tinggi)]
+    return kanal_out
+
+
+def histogram_equalization(citra, max_level=255):
+    """
+    Ekualisasi histogram; citra RGB diproses per kanal.
+    Rumus: Ko = floor(Ci * max_level / (w*h) + epsilon).
+    """
+    if citra.mode == "L":
+        kanal_baru = [_equalize_channel(citra.kanal[0], citra.tinggi, citra.lebar, max_level)]
+        return Citra(citra.lebar, citra.tinggi, "L", kanal_baru)
+    else:
+        kanal_baru = [
+            _equalize_channel(citra.kanal[c], citra.tinggi, citra.lebar, max_level)
+            for c in range(3)
+        ]
+        return Citra(citra.lebar, citra.tinggi, "RGB", kanal_baru)
+
+
+def show_histogram(citra):
     """Menampilkan citra dan histogram aslinya memakai visualisasi bersama."""
-    display_comparison(img_array, img_array, "Histogram Citra Asli")
+    display_comparison(citra, citra, "Histogram Citra Asli")
+
 
 def run(original_img):
     print("\n--- OPERASI GLOBAL ---")
