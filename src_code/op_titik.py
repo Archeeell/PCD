@@ -52,8 +52,80 @@ def adjust_contrast(citra, factor, pivot=128):
     return hasil
 
 
-def negate(citra):
+def tampilkan_tabel_hex_negasi(tampilkan_semua=False):
+    """
+    Menampilkan tabel pemetaan perubahan intensitas dari citra awal ke citra negasi (0-255)
+    dalam representasi Desimal dan Heksadesimal (Hex).
+    """
+    print("\n" + "=" * 65)
+    print("     TABEL PEMETAAN TRANSFORMASI INTENSITAS & HEX (NEGASI)      ")
+    print("=" * 65)
+    print(f"{'Nilai Awal (Ki)':^28} | {'Nilai Negasi (Ko)':^28}")
+    print(f"{'Desimal':<12} {'Hexadecimal':<14} | {'Desimal':<12} {'Hexadecimal':<14}")
+    print("-" * 65)
+
+    if tampilkan_semua:
+        rentang = range(256)
+    else:
+        # Tampilkan sampel terstruktur: awal, pertengahan (pivot), dan akhir
+        rentang = list(range(0, 11)) + [64, 127, 128, 191] + list(range(245, 256))
+
+    prev = -1
+    for i in rentang:
+        if prev != -1 and i > prev + 1:
+            print(f"{'...':^12} {'...':^14} | {'...':^12} {'...':^14}")
+        val_negasi = 255 - i
+        print(f"{i:<12} {f'0x{i:02X}':<14} | {val_negasi:<12} {f'0x{val_negasi:02X}':<14}")
+        prev = i
+    print("=" * 65 + "\n")
+
+
+def tampilkan_grid_hex_piksel(citra_awal, citra_negasi, grid_w, grid_h):
+    """
+    Menampilkan perbandingan nilai piksel HEX dari pojok kiri atas (0, 0)
+    sebesar grid_w x grid_h piksel.
+    """
+    w = min(grid_w, citra_awal.lebar)
+    h = min(grid_h, citra_awal.tinggi)
+
+    def _format_pixel_hex(c_obj, x, y):
+        if c_obj.mode == "RGB":
+            r = c_obj.kanal[0][y][x]
+            g = c_obj.kanal[1][y][x]
+            b = c_obj.kanal[2][y][x]
+            return f"#{r:02X}{g:02X}{b:02X}"
+        else:
+            val = c_obj.kanal[0][y][x]
+            return f"0x{val:02X}"
+
+    print("\n" + "=" * 70)
+    print(f"  MATRIKS NILAI HEX PIKSEL (Ukuran {w}x{h} px dari kiri atas [0, 0])  ")
+    print(f"  Mode Citra: {citra_awal.mode}")
+    print("=" * 70)
+
+    print("\n--- [1] CITRA ASLI (Sebelum Negasi) ---")
+    header_x = "      " + " ".join(f"{x:>7}" for x in range(w))
+    print(header_x)
+    print("     " + "-" * (len(header_x) - 5))
+    for y in range(h):
+        baris_str = f"y={y:<3}| " + " ".join(f"{_format_pixel_hex(citra_awal, x, y):>7}" for x in range(w))
+        print(baris_str)
+
+    print("\n--- [2] CITRA HASIL NEGASI ---")
+    print(header_x)
+    print("     " + "-" * (len(header_x) - 5))
+    for y in range(h):
+        baris_str = f"y={y:<3}| " + " ".join(f"{_format_pixel_hex(citra_negasi, x, y):>7}" for x in range(w))
+        print(baris_str)
+    print("=" * 70 + "\n")
+
+
+def negate(citra, cetak_tabel=False):
+
     """Negasi: Ko = 255 - Ki."""
+    if cetak_tabel:
+        tampilkan_tabel_hex_negasi(tampilkan_semua=False)
+
     hasil = buat_kosong(citra.lebar, citra.tinggi, citra.mode)
     for c in range(len(citra.kanal)):
         k_src = citra.kanal[c]
@@ -64,6 +136,7 @@ def negate(citra):
             for x in range(citra.lebar):
                 dst_row[x] = 255 - src_row[x]
     return hasil
+
 
 
 def convert_color(citra):
@@ -128,8 +201,33 @@ def _choose_and_show(original_img, choice):
         result = adjust_contrast(original_img, factor)
         label  = f"Kontras (x{factor})"
     elif choice == 3:
-        result = negate(original_img)
+        pilihan_tabel = input("Tampilkan tabel pemetaan 0-255 HEX? (y/N): ").strip().lower()
+        if pilihan_tabel == "y":
+            pilihan_semua = input("Tampilkan seluruh 256 baris penuh? (y/N): ").strip().lower()
+            tampilkan_tabel_hex_negasi(tampilkan_semua=(pilihan_semua == "y"))
+
+        result = negate(original_img, cetak_tabel=False)
+
+        input_grid = input(f"Masukkan ukuran grid piksel HEX dari kiri atas (contoh: 50x50, maks {original_img.lebar}x{original_img.tinggi}, atau tekan Enter untuk skip): ").strip().lower()
+        if input_grid:
+            try:
+                if "x" in input_grid:
+                    gw_str, gh_str = input_grid.split("x", 1)
+                elif "," in input_grid:
+                    gw_str, gh_str = input_grid.split(",", 1)
+                else:
+                    gw_str = gh_str = input_grid
+                gw, gh = int(gw_str.strip()), int(gh_str.strip())
+                if gw > 0 and gh > 0:
+                    tampilkan_grid_hex_piksel(original_img, result, gw, gh)
+                else:
+                    print("Ukuran grid harus lebih besar dari 0.")
+            except ValueError:
+                print("Format input ukuran grid tidak valid, melewati tampilan grid.")
+
         label  = "Negasi (Inversi)"
+
+
     elif choice == 4:
         result = convert_color(original_img)
         label  = "Konversi ke Grayscale" if original_img.mode == "RGB" else "Konversi ke RGB"

@@ -268,7 +268,7 @@ def run(original_img):
             print(f"[{i}] {name}")
         operator = names[prompt_int("Pilih operator: ", 1, len(names)) - 1]
         if operator in GRADIENTS:
-            print("[1] Jumlah  [2] Maksimum  [3] Rerata  [4] Magnitudo Euclidean")
+            print("[1] Add  [2] Max  [3] Mean  [4] Magnitudo Euclidean")
             method = prompt_int("Pilih kombinasi K1 dan K2: ", 1, 4)
         else:
             method = 4
