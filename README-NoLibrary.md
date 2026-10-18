@@ -21,6 +21,7 @@ python src_code/op_titik.py
 python src_code/op_geometri.py
 python src_code/op_bingkai.py
 python src_code/op_global.py
+python src_code/op_thresholding.py
 python src_code/op_neighborhood.py
 python src_code/noise_mean.py
 python src_code/noise_median.py
@@ -91,6 +92,10 @@ untuk tampilan/simpan.
 16. **Korelasi (neighborhood)**: ΣΣ f(x,y)·h(s,t) (kernel tidak dibalik)
 17. **Emboss**: 128 + Σ(kernel × piksel), pusat kernel = 1
 18. **Gaussian**: exp(−(x²+y²)/(2σ²)) dinormalisasi
+19. **Histogram Analysis**: T = intensitas pertama dengan CDF/N > 0.5; Ko = 255 jika Ki > T, else 0
+20. **Otsu**: T = argmax σb²(T) = w0·w1·(μ0 − μ1)², kelas ≤ T dan > T; Ko = 255 jika Ki > T
+21. **Adaptive Mean**: T(x,y) = rerata blok n×n − C (jumlah blok dihitung integer); Ko = 255 jika Ki > T(x,y)
+22. **Adaptive Gaussian**: T(x,y) = rerata berbobot Gaussian blok n×n − C, σ = 0.3·((n−1)/2 − 1) + 0.8
 
 ---
 

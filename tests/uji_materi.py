@@ -21,6 +21,8 @@ from src_code.op_geometri import (flip_horizontal, flip_vertical, flip_combined,
 from src_code.op_bingkai import (blend_images, detect_motion,
                                   logic_and, logic_or, logic_xor, logic_sub, logic_not)
 from src_code.op_global import histogram_equalization
+from src_code.op_thresholding import (histogram_analysis_threshold, otsu_threshold, adaptive_mean_threshold,
+                                       adaptive_gaussian_threshold)
 from src_code.op_neighborhood import (smoothing, sharpening, edge_detection,
                                        emboss_response, emboss,
                                        _uint8_dari_float_kanal, GRADIENTS, LAPLACIANS)
@@ -343,6 +345,73 @@ thr_on = apply_threshold(c_thr, 128)
 cek("Threshold >=128 -> 255", thr_on.kanal[0][0][0], 255)
 thr_off = apply_threshold(Citra(1, 1, "L", [[[127]]]), 128)
 cek("Threshold <128 -> 0", thr_off.kanal[0][0][0], 0)
+
+print("\n" + "=" * 60)
+print("UJI THRESHOLDING (PPT Thresholding)")
+print("=" * 60)
+
+def _baris255(data):
+    return [list(b) for b in data]
+
+# Histogram Analysis: T = intensitas pertama dengan CDF ternormalisasi > 0.5
+# 25 piksel terurut -> piksel ke-13 = 160; piksel > T -> 255
+hasil_h, t_h = histogram_analysis_threshold(C5)
+cek("Histogram Analysis T", t_h, 160)
+cek("Histogram Analysis matriks hasil", hasil_h.kanal[0], _baris255([
+    [255, 255, 255, 255, 255],
+    [255, 255, 255,   0,   0],
+    [255,   0,   0,   0,   0],
+    [255,   0,   0,   0,   0],
+    [  0,   0,   0,   0,   0]]))
+
+# Otsu: minimalkan varians dalam-kelas == maksimalkan varians antar-kelas
+hasil_o, t_o = otsu_threshold(C5)
+cek("Otsu T (matriks 5x5)", t_o, 160)
+cek("Otsu matriks hasil", hasil_o.kanal[0], hasil_h.kanal[0])
+# Bimodal 4x4: 8 piksel = 10 dan 8 piksel = 200 -> T pertama yang memisahkan = 10
+bimodal = Citra(4, 4, "L", [[[10] * 4, [10] * 4, [200] * 4, [200] * 4]])
+hasil_b, t_b = otsu_threshold(bimodal)
+cek("Otsu bimodal T", t_b, 10)
+cek("Otsu bimodal baris atas -> 0", hasil_b.kanal[0][0], [0, 0, 0, 0])
+cek("Otsu bimodal baris bawah -> 255", hasil_b.kanal[0][3], [255, 255, 255, 255])
+
+# Adaptive Mean 3x3 (padding pantul), C=0 dan C=5
+cek("Adaptive Mean 3x3 C=0 matriks", adaptive_mean_threshold(C5, 3, 0).kanal[0], _baris255([
+    [255, 255, 255, 255, 255],
+    [255,   0,   0,   0,   0],
+    [255,   0, 255, 255,   0],
+    [255,   0,   0, 255,   0],
+    [255,   0,   0,   0,   0]]))
+cek("Adaptive Mean 3x3 C=0 piksel(2,2)=160 > 1380/9=153.3", piksel(adaptive_mean_threshold(C5, 3, 0), 2, 2), 255)
+cek("Adaptive Mean 3x3 C=5 matriks", adaptive_mean_threshold(C5, 3, 5).kanal[0], _baris255([
+    [255, 255, 255, 255, 255],
+    [255, 255, 255,   0,   0],
+    [255,   0, 255, 255,   0],
+    [255,   0,   0, 255,   0],
+    [255,   0,   0,   0,   0]]))
+
+# Adaptive Gaussian 3x3 (sigma = 0.8), C=0 dan C=5
+cek("Adaptive Gaussian 3x3 C=0 matriks", adaptive_gaussian_threshold(C5, 3, 0).kanal[0], _baris255([
+    [255, 255, 255, 255, 255],
+    [255,   0,   0,   0,   0],
+    [  0,   0, 255, 255,   0],
+    [255,   0,   0, 255,   0],
+    [255,   0,   0,   0,   0]]))
+cek("Adaptive Gaussian 3x3 C=5 matriks", adaptive_gaussian_threshold(C5, 3, 5).kanal[0], _baris255([
+    [255, 255, 255, 255, 255],
+    [255, 255, 255,   0,   0],
+    [255,   0, 255, 255,   0],
+    [255,   0,   0, 255,   0],
+    [255,   0,   0,   0,   0]]))
+
+# Citra RGB -> hasil grayscale (mode "L"); ukuran blok genap -> ValueError
+rgb_uji = buat_citra_rgb(DATA_5X5, DATA_5X5, DATA_5X5)
+cek("Thresholding RGB -> mode L", otsu_threshold(rgb_uji)[0].mode, "L")
+try:
+    adaptive_mean_threshold(C5, 4, 2)
+    cek("Blok genap ditolak", False, True)
+except ValueError:
+    cek("Blok genap ditolak", True, True)
 
 print("\n=" * 3)
 print("UJI OPERASI LOGIKA (tabel kebenaran PDF hlm. 22)")
