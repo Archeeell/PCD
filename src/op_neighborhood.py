@@ -17,7 +17,7 @@ if __package__ in (None, ""):
     import sys
     from pathlib import Path
     sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
-    from src_code.utils import (Citra, buat_kosong, korelasi_kanal, buat_padding_pantul,
+    from src.utils import (Citra, buat_kosong, korelasi_kanal, buat_padding_pantul,
                                 display_comparison, prompt_int, prompt_float, run_standalone)
 else:
     from .utils import (Citra, buat_kosong, korelasi_kanal, buat_padding_pantul,

@@ -16,17 +16,17 @@ Setiap modul berjalan mandiri tanpa `main.py`:
 pip install -r requirements.txt
 
 # Jalankan modul secara langsung
-python src_code/op_ekstraksi.py
-python src_code/op_titik.py
-python src_code/op_geometri.py
-python src_code/op_bingkai.py
-python src_code/op_global.py
-python src_code/op_thresholding.py
-python src_code/op_neighborhood.py
-python src_code/noise_mean.py
-python src_code/noise_median.py
-python src_code/noise_midpoint.py
-python src_code/noise_gaussian.py
+python src/op_ekstraksi.py
+python src/op_titik.py
+python src/op_geometri.py
+python src/op_bingkai.py
+python src/op_global.py
+python src/op_thresholding.py
+python src/op_neighborhood.py
+python src/noise_mean.py
+python src/noise_median.py
+python src/noise_midpoint.py
+python src/noise_gaussian.py
 
 # Jalankan uji materi (tanpa pytest)
 python tests/uji_materi.py
@@ -144,9 +144,9 @@ pojok kiri-atas) dan konversi grayscale ke RGB jika perlu.
 
 Tidak ada `import numpy`, `import cv2`, `import scipy`, atau
 fungsi PIL terlarang (`PIL.ImageOps`, `Image.filter`, `Image.fromarray`,
-`np.asarray`, dst.) di dalam folder `src_code/`.
+`np.asarray`, dst.) di dalam folder `src/`.
 
 Verifikasi:
 ```bash
-grep -r "import numpy\|import cv2\|import scipy\|fromarray\|np\." src_code/
+grep -r "import numpy\|import cv2\|import scipy\|fromarray\|np\." src/
 ```

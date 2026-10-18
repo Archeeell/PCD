@@ -12,24 +12,24 @@ from pathlib import Path
 
 # Bootstrap path agar bisa dijalankan langsung
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
-from src_code.utils import (Citra, buat_kosong, korelasi_kanal,
+from src.utils import (Citra, buat_kosong, korelasi_kanal,
                              buat_padding_pantul, indeks_pantul)
-from src_code.op_titik import (adjust_brightness, adjust_contrast,
+from src.op_titik import (adjust_brightness, adjust_contrast,
                                 negate, apply_threshold, convert_color)
-from src_code.op_geometri import (flip_horizontal, flip_vertical, flip_combined,
+from src.op_geometri import (flip_horizontal, flip_vertical, flip_combined,
                                    rotate_90_cw, rotate_180_cw, crop_image, scale_image)
-from src_code.op_bingkai import (blend_images, detect_motion,
+from src.op_bingkai import (blend_images, detect_motion,
                                   logic_and, logic_or, logic_xor, logic_sub, logic_not)
-from src_code.op_global import histogram_equalization
-from src_code.op_thresholding import (histogram_analysis_threshold, otsu_threshold, adaptive_mean_threshold,
+from src.op_global import histogram_equalization
+from src.op_thresholding import (histogram_analysis_threshold, otsu_threshold, adaptive_mean_threshold,
                                        adaptive_gaussian_threshold)
-from src_code.op_neighborhood import (smoothing, sharpening, edge_detection,
+from src.op_neighborhood import (smoothing, sharpening, edge_detection,
                                        emboss_response, emboss,
                                        _uint8_dari_float_kanal, GRADIENTS, LAPLACIANS)
-from src_code.noise_mean import mean_filter
-from src_code.noise_median import median_filter as noise_median_filter
-from src_code.noise_midpoint import midpoint_filter
-from src_code.op_ekstraksi import (ekstrak_karakteristik, get_pixel, set_pixel,
+from src.noise_mean import mean_filter
+from src.noise_median import median_filter as noise_median_filter
+from src.noise_midpoint import midpoint_filter
+from src.op_ekstraksi import (ekstrak_karakteristik, get_pixel, set_pixel,
                                    buat_citra_baru, simpan_bmp_manual, muat_bmp_manual,
                                    ekstrak_header_file)
 

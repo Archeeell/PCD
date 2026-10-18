@@ -9,11 +9,11 @@ if __package__ in (None, ""):
     import sys
     from pathlib import Path
     sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
-    from src_code.utils import (buat_kosong, compute_histogram, korelasi_kanal,
+    from src.utils import (buat_kosong, compute_histogram, korelasi_kanal,
                                 buat_padding_pantul, display_comparison,
                                 prompt_int, prompt_float, run_standalone)
-    from src_code.op_titik import convert_color
-    from src_code.noise_gaussian import gaussian_kernel
+    from src.op_titik import convert_color
+    from src.noise_gaussian import gaussian_kernel
 else:
     from .utils import (buat_kosong, compute_histogram, korelasi_kanal,
                         buat_padding_pantul, display_comparison,

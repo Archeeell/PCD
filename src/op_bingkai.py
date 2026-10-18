@@ -15,7 +15,7 @@ if __package__ in (None, ""):
     import sys
     from pathlib import Path
     sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
-    from src_code.utils import (Citra, buat_kosong, klem,
+    from src.utils import (Citra, buat_kosong, klem,
                                 display_dual_input_result, select_second_image,
                                 prompt_int, prompt_float, run_standalone)
 else:

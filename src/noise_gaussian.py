@@ -8,7 +8,7 @@ from pathlib import Path
 if __package__ in (None, ""):
     import sys
     sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
-    from src_code.utils import (Citra, buat_kosong, korelasi_kanal,
+    from src.utils import (Citra, buat_kosong, korelasi_kanal,
                                 dari_pil, simpan_pil,
                                 display_comparison, prompt_int, run_standalone)
 else:

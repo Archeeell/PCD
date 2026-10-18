@@ -20,7 +20,7 @@ if __package__ in (None, ""):
     import sys
     from pathlib import Path
     sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
-    from src_code.utils import (Citra, buat_kosong, salin, klem,
+    from src.utils import (Citra, buat_kosong, salin, klem,
                                 get_pixel, set_pixel,
                                 display_comparison, prompt_int, prompt_float,
                                 run_standalone, get_available_images, load_image, IMG_DIR)
@@ -584,7 +584,7 @@ def run(original_img):
 
 
 def run_standalone_ekstraksi():
-    """Menu peluncur mandiri jika dijalankan langsung via python src_code/op_ekstraksi.py."""
+    """Menu peluncur mandiri jika dijalankan langsung via python src/op_ekstraksi.py."""
     while True:
         print("\n" + "=" * 60)
         print("  MODUL OPERASI PEMBUATAN & EKSTRAKSI CITRA DIGITAL")

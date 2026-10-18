@@ -255,7 +255,7 @@ def simpan_pil(citra, path):
 # ---------------------------------------------------------------------------
 
 def run_standalone(operation):
-    """Pilih citra, lalu jalankan satu modul operasi tanpa src_code/main.py."""
+    """Pilih citra, lalu jalankan satu modul operasi tanpa src/main.py."""
     images = get_available_images()
     if not images:
         print(f"Folder '{IMG_DIR}' kosong atau tidak berisi citra yang didukung.")
